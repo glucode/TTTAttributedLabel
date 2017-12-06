@@ -807,33 +807,37 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
                         [truncationString deleteCharactersInRange:NSMakeRange((NSUInteger)(lastLineRange.length - 1), 1)];
                     }
                 }
-                truncationString = [[truncationString attributedSubstringFromRange:NSMakeRange(0, truncationString.length - attributedTruncationString.length)] mutableCopy];
-                [truncationString appendAttributedString:attributedTruncationString];
-                CTLineRef truncationLine = CTLineCreateWithAttributedString((__bridge CFAttributedStringRef)truncationString);
-
-                // Truncate the line in case it is too long.
-                CTLineRef truncatedLine = CTLineCreateTruncatedLine(truncationLine, rect.size.width, truncationType, truncationToken);
-                if (!truncatedLine) {
-                    // If the line is not as wide as the truncationToken, truncatedLine is NULL
-                    truncatedLine = CFRetain(truncationToken);
-                }
-
-                CGFloat penOffset = (CGFloat)CTLineGetPenOffsetForFlush(truncatedLine, flushFactor, rect.size.width);
-                CGContextSetTextPosition(c, penOffset, lineOrigin.y - descent - self.font.descender);
-
-                CTLineDraw(truncatedLine, c);
-                
-                NSRange linkRange;
-                if ([attributedTruncationString attribute:NSLinkAttributeName atIndex:0 effectiveRange:&linkRange]) {
-                    NSRange tokenRange = [truncationString.string rangeOfString:attributedTruncationString.string];
-                    NSRange tokenLinkRange = NSMakeRange((NSUInteger)(lastLineRange.location+lastLineRange.length)-tokenRange.length, (NSUInteger)tokenRange.length);
+                if (!truncationString) {
+                    truncationString = [[truncationString attributedSubstringFromRange:NSMakeRange(0, truncationString.length - attributedTruncationString.length)] mutableCopy];
+                } else {
+                    [truncationString appendAttributedString:attributedTruncationString];
+                    CTLineRef truncationLine = CTLineCreateWithAttributedString((__bridge CFAttributedStringRef)truncationString);
                     
-                    [self addLinkToURL:[attributedTruncationString attribute:NSLinkAttributeName atIndex:0 effectiveRange:&linkRange] withRange:tokenLinkRange];
+                    // Truncate the line in case it is too long.
+                    CTLineRef truncatedLine = CTLineCreateTruncatedLine(truncationLine, rect.size.width, truncationType, truncationToken);
+                    if (!truncatedLine) {
+                        // If the line is not as wide as the truncationToken, truncatedLine is NULL
+                        truncatedLine = CFRetain(truncationToken);
+                    }
+                    
+                    CGFloat penOffset = (CGFloat)CTLineGetPenOffsetForFlush(truncatedLine, flushFactor, rect.size.width);
+                    CGContextSetTextPosition(c, penOffset, lineOrigin.y - descent - self.font.descender);
+                    
+                    CTLineDraw(truncatedLine, c);
+                    
+                    NSRange linkRange;
+                    if ([attributedTruncationString attribute:NSLinkAttributeName atIndex:0 effectiveRange:&linkRange]) {
+                        NSRange tokenRange = [truncationString.string rangeOfString:attributedTruncationString.string];
+                        NSRange tokenLinkRange = NSMakeRange((NSUInteger)(lastLineRange.location+lastLineRange.length)-tokenRange.length, (NSUInteger)tokenRange.length);
+                        
+                        [self addLinkToURL:[attributedTruncationString attribute:NSLinkAttributeName atIndex:0 effectiveRange:&linkRange] withRange:tokenLinkRange];
+                    }
+                    
+                    CFRelease(truncatedLine);
+                    CFRelease(truncationLine);
+                    CFRelease(truncationToken);
                 }
-
-                CFRelease(truncatedLine);
-                CFRelease(truncationLine);
-                CFRelease(truncationToken);
+                
             } else {
                 CGFloat penOffset = (CGFloat)CTLineGetPenOffsetForFlush(line, flushFactor, rect.size.width);
                 CGContextSetTextPosition(c, penOffset, lineOrigin.y - descent - self.font.descender);
@@ -845,7 +849,6 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
             CTLineDraw(line, c);
         }
     }
-
     [self drawStrike:frame inRect:rect context:c];
 
     CFRelease(frame);
