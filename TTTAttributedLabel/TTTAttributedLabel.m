@@ -807,9 +807,8 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
                         [truncationString deleteCharactersInRange:NSMakeRange((NSUInteger)(lastLineRange.length - 1), 1)];
                     }
                 }
-                if (!truncationString) {
-                    truncationString = [[truncationString attributedSubstringFromRange:NSMakeRange(0, truncationString.length - attributedTruncationString.length)] mutableCopy];
-                } else {
+                if ( truncationString.length > attributedTruncationString.length ) {
+                    truncationString = [truncationString attributedSubstringFromRange:NSMakeRange(0, truncationString.length - attributedTruncationString.length)];
                     [truncationString appendAttributedString:attributedTruncationString];
                     CTLineRef truncationLine = CTLineCreateWithAttributedString((__bridge CFAttributedStringRef)truncationString);
                     
@@ -835,6 +834,9 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
                     
                     CFRelease(truncatedLine);
                     CFRelease(truncationLine);
+                    CFRelease(truncationToken);
+                } else {
+                    CTLineDraw(truncationToken, c);
                     CFRelease(truncationToken);
                 }
                 
